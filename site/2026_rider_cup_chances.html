@@ -18,6 +18,18 @@ h2 { font-size:1.05rem; color:var(--navy); margin:0 0 8px; }
 .tab-btn { background:none; border:none; padding:9px 13px; font-size:0.85rem; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
 .tab-btn.active { color:var(--navy); border-bottom:3px solid var(--gold); }
 .controls { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+.rank-picker { display:flex; align-items:center; gap:7px; font-size:14px; font-weight:600; color:var(--navy); }
+.rank-picker select { font-weight:600; cursor:pointer; }
+.card h3 { font-family:inherit; color:var(--navy); font-size:16px; }
+.r6roster { display:flex; flex-wrap:wrap; gap:6px 14px; }
+.r6name { font-size:13px; color:#333; background:#f3efe7; border:1px solid var(--line); border-radius:4px; padding:3px 9px; white-space:nowrap; }
+.wi-actuals { margin:12px 0; }
+.wi-actuals-label { font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:#888; margin-bottom:5px; }
+.wi-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.wi-chip { font-size:14px; background:#f3efe7; border:1px solid var(--line); border-radius:5px; padding:5px 11px; }
+.wi-chip b { color:var(--navy); margin-right:4px; }
+.wi-chip.wi-total { background:var(--navy); color:#fff; }
+.wi-chip.wi-total b { color:var(--gold); }
 input[type="text"], input[type="number"], select { padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:0.9rem; background:#fff; }
 input[type="text"] { flex:1; min-width:180px; }
 .count { font-size:0.8rem; color:var(--muted); }
@@ -73,7 +85,7 @@ svg text { font-family: inherit; }
     <button class="tab-btn" data-tab="skins">Skins</button>
     <button class="tab-btn" data-tab="charts">Charts</button>
     <button class="tab-btn" data-tab="handicap">Handicaps</button>
-    <button class="tab-btn" data-tab="round5">Round 5 Attendance</button>
+    <button class="tab-btn" data-tab="round6">Round 6 Field</button>
     <button class="tab-btn" data-tab="r5recap">Round 5 Recap</button>
   </div>
 
@@ -84,26 +96,19 @@ svg text { font-family: inherit; }
     </div>
     <div class="controls">
       <input type="text" id="search-main" placeholder="Search player name..." />
+      <label class="rank-picker">Rank by:
+        <select id="rank-select">
+          <option value="rank">LV Rank</option>
+          <option value="proRank">Pro Shop</option>
+          <option value="steveRank">Steve</option>
+          <option value="avgRank">Average</option>
+        </select>
+      </label>
       <span class="count" id="count-main"></span>
     </div>
     <div class="tablewrap">
       <table id="table-main">
-        <thead><tr>
-          <th data-key="name" data-type="str">Player</th>
-          <th data-key="rank" data-type="num">LV Rank</th>
-          <th data-key="proRank" data-type="num">Pro Shop</th>
-          <th data-key="steveRank" data-type="num">Steve</th>
-          <th data-key="avgRank" data-type="num">Avg Rank</th>
-          <th data-key="played" data-type="num">Played</th>
-          <th data-key="total" data-type="num">Total</th>
-          <th data-key="pace" data-type="num">Raw Pace</th>
-          <th data-key="adjPace" data-type="num">Adj. Pace</th>
-          <th data-key="worst" data-type="num">Worst Rd</th>
-          <th data-key="floor" data-type="num">Floor</th>
-          <th data-key="ceiling" data-type="num">Ceiling</th>
-          <th data-key="projection" data-type="num">Avg Pts/Rd Projection</th>
-          <th data-key="comment" data-type="str">Comment</th>
-        </tr></thead>
+        <thead></thead>
         <tbody id="tbody-main"></tbody>
       </table>
     </div>
@@ -137,19 +142,22 @@ svg text { font-family: inherit; }
   <div class="tab-panel" id="panel-whatif">
     <div class="card">
       <h2>What-If Calculator</h2>
-      <div class="sub">Pick a player, plug in a hypothetical score for their next round, and see how it moves their Projection.</div>
+      <div class="sub">Pick a player — their five actual round scores load automatically. Then plug in guesses for Round 6 and Round 7 to see where they land. Projection runs the real best-5-of-7 drop math.</div>
       <div class="row">
         <div>
           <label for="wi-player">Player</label>
           <select id="wi-player"></select>
         </div>
+      </div>
+      <div class="wi-actuals" id="wi-actuals"></div>
+      <div class="row">
         <div>
-          <label for="wi-next">Next round score</label>
-          <input type="number" id="wi-next" value="70" min="0" max="100" />
+          <label for="wi-r6">Round 6 guess</label>
+          <input type="number" id="wi-r6" value="60" min="0" max="100" />
         </div>
         <div>
-          <label for="wi-rest">Pace for rounds after that</label>
-          <input type="number" id="wi-rest" value="60" min="0" max="100" />
+          <label for="wi-r7">Round 7 guess</label>
+          <input type="number" id="wi-r7" value="60" min="0" max="100" />
         </div>
       </div>
       <button class="go" id="wi-go">Recalculate</button>
@@ -231,75 +239,57 @@ svg text { font-family: inherit; }
 
 
 
-  <!-- TAB 8: ROUND 5 ATTENDANCE -->
-  <div class="tab-panel" id="panel-round5">
-    
-    <div class="card" style="border-left:4px solid var(--gold);">
-      <h2>Round 5 LIVE — Clubhouse Leaderboard (preliminary)</h2>
-      <p><strong>Snapshot from mid-round, Sat July 11 ~12:15 PM.</strong> Roughly a third of the field is still on the course, so league points are NOT final and no projections have been updated yet. Notables in the clubhouse:</p>
-      <ul>
-        <li><strong>Weakly leads with a net 67 (-5)</strong> — huge day for a guy who badly needed one.</li>
-        <li><strong>Rush (-5 thru 13) and Drew (-5 thru 16)</strong> were tied for the lead still on course.</li>
-        <li><strong>Talus posted net 71</strong> — one of the zero-throwaway guys we flagged; that's exactly the round he had to have.</li>
-        <li><strong>Verce: net 77 (+5), T61 at posting time</strong> — mid-range round, likely 45-60 points once the field settles. Projections effectively unchanged: still on the cutoff line, still needs one strong round in the last two events.</li>
+  <!-- TAB 8: ROUND 6 FIELD -->
+  <div class="tab-panel" id="panel-round6">
+
+    <div class="card" style="border-left:5px solid var(--gold);">
+      <h3 style="margin:0 0 6px;">Round 6 Field — 82 signed up</h3>
+      <p style="margin:0;">The field grew from 74 to <strong>82</strong> as the week went on. Round 6 is the round the <strong>drop activates</strong> for 5-round players — your worst score finally comes off the best-5 count. Below: who's teeing off, who's skipping, and what it means for the bubble.</p>
+    </div>
+
+    <div class="card" style="border-left:5px solid var(--gold);">
+      <h3 style="margin:0 0 6px;">Bubble rivals sitting this one out — good news at the line</h3>
+      <p style="margin:0 0 8px;">Three players parked right around the cutoff are <strong>not</strong> signed up. Every round a bubble rival skips is a round they can't use to pass you:</p>
+      <ul style="margin:0; padding-left:20px;">
+        <li><strong>Detora, Michael</strong> — LV #37 (proj 309.8) — skipping</li>
+        <li><strong>Mora, Henry</strong> — LV #48 (proj 311.9) — skipping</li>
+        <li><strong>Cox, Theodore E.</strong> — LV #50 (proj 304.2) — skipping</li>
       </ul>
-      <div class="tablewrap" style="max-height:40vh;">
-        <table>
-          <thead><tr><th>Player (finished)</th><th>Net</th></tr></thead>
-          <tbody><tr><td>Weakly, Jeff</td><td>67</td></tr><tr><td>Sherwood, Rob</td><td>69</td></tr><tr><td>Reynolds, Kevin</td><td>69</td></tr><tr><td>Rzonca, Tad</td><td>69</td></tr><tr><td>Laudick, Zac</td><td>70</td></tr><tr><td>Blanco, Gabriel</td><td>70</td></tr><tr><td>O'Kelly, Kurtis</td><td>70</td></tr><tr><td>Barton, Scott</td><td>71</td></tr><tr><td>Law, Craig</td><td>71</td></tr><tr><td>Neary, Steve</td><td>71</td></tr><tr><td>Talus, Jeff</td><td>71</td></tr><tr><td>Grundy, Chris</td><td>74</td></tr><tr><td>Pogue, James</td><td>75</td></tr><tr><td>Lane, Matt</td><td>76</td></tr><tr><td>Windom, Stephen</td><td>76</td></tr><tr><td>Telle, Clifford</td><td>76</td></tr><tr><td>Field, Gary</td><td>76</td></tr><tr><td>Fadgen, Sean</td><td>76</td></tr><tr><td>McLemore, John</td><td>77</td></tr><tr><td>Visscher, Jon</td><td>77</td></tr><tr><td>Verce, Landon</td><td>77</td></tr><tr><td>Max, Mark</td><td>78</td></tr><tr><td>Bisson, Patrick</td><td>78</td></tr><tr><td>Detora, Michael</td><td>78</td></tr><tr><td>Maegdlin, Steve</td><td>78</td></tr><tr><td>Hatchell, Mark</td><td>81</td></tr><tr><td>Yohanan, James</td><td>81</td></tr><tr><td>Todd, David</td><td>82</td></tr><tr><td>Baldini, Eric</td><td>84</td></tr><tr><td>Watt, Mike</td><td>87</td></tr><tr><td>Biffar, William</td><td>91</td></tr></tbody>
-        </table>
-      </div>
-      <div class="legend">Full tables (points, handicaps, skins, projections) will be updated when official Round 5 results post.</div>
+      <p style="margin:8px 0 0; font-size:13px; color:#555;">With the effective cutoff around 49-51, these three sitting out is a direct gift to everyone teeing off near the line.</p>
     </div>
 
     <div class="card">
-      <h2>Round 5 — Official Tee Sheet (Sat, July 11 at The Club)</h2>
-      <p><strong>94 players are on the sheet — the biggest field of the season.</strong> The earlier "who hasn't signed up" hand-wringing mostly resolved itself: 10 of the guys previously missing from the signup list made it in after all, including bubble-watchers Guinta and Mora, plus comfortable guys like Egan, Barnes, and Shub.</p>
-      <ul>
-        <li><strong>Only 2 genuinely live players are missing:</strong> Howard, Cole (Bubble, 2 rounds played) and Godwin, Gabriel (Bubble, 3 rounds). Both are small-sample guys who badly need reps — sitting out round 5 leaves them just 2 more chances to build a qualifying total. That's a real cost.</li>
-        <li><strong>The 8:30 group is the marquee pairing:</strong> McLain (the lock) with Rush (top-5 pace). Fuhrman and Woody get front-row seats to a clinic.</li>
-        <li><strong>Grundy watch continues:</strong> the stealth improver (gross 91&rarr;78 this season) tees at 7:27 off #1. If his form is real, this is the round it shows in the standings.</li>
-        <li><strong>Verce draws Ford, Yohanan, and newcomer Stimple at 7:27 off #10</strong> — meaning his day starts on the eagle hole. Both skins there this season were natural eagles on 10. Nothing wrong with an aggressive opening swing.</li>
-        <li><strong>The 7:45 #10 group is loaded:</strong> Laudick Lucas (the +3 stick of the league) with Jaworowski, Frank, and Olson. Low gross is probably decided in this group.</li>
-        <li><strong>The five "New/No data" names aren't actually new</strong> — Bucher (R1), Pogue (R2), Hall (R1), Max (R3), and Talus (R1) each have exactly one round, which kept them under the 2-round tracking threshold. Here's their real problem: <strong>with one round banked and three left, the most they can finish with is 4 rounds — one short of a full best-5 scorecard, and zero throwaways.</strong> Every round they've played and will play counts. Pogue's 96 and Bucher's 90 are great starts, but one bad Saturday now sits in their total forever. Hall and Talus are carrying a 20 they can never drop — even maxing the last three, their ceiling is 320, and they'd be doing it with one fewer counting round than everyone else.</li>
-      <li><strong>13 Longshots skipped</strong> — mostly guys whose cup math was already gone (Hook, Duke Jim, Lenz, etc.). Rational triage, or summer vacations. Either way, no impact on the race.</li>
+      <h3 style="margin:0 0 6px;">Field, Gary flips to playing (#49)</h3>
+      <p style="margin:0;">Previously a no-show, Gary Field is now in the field at the bubble line (proj 315.3). He's the exception to the trend above — a bubble guy who showed up. One to watch relative to your own spot.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 6px;">The auditions — 3-round players getting a 4th look</h3>
+      <p style="margin:0 0 8px;">These are the high-variance guys whose hot pace the model half-trusts and the Pro Shop doesn't. A Round 6 score converts disputed pace into a real position — or collapses it:</p>
+      <ul style="margin:0; padding-left:20px;">
+        <li><strong>Rzonca, Tad</strong> — LV #16 / Pro #45 / Steve #19</li>
+        <li><strong>Jones, Mark</strong> — LV #19 / Pro #49 / Steve #27</li>
+        <li><strong>Balk, John</strong> — LV #31 / Pro #61 / Steve #41</li>
+        <li><strong>Thompson, Jason</strong> — LV #33 / Pro #64 / Steve #45</li>
+        <li><strong>Gowler, Matt</strong> — LV #40 / Pro #71 / Steve #59</li>
       </ul>
     </div>
+
     <div class="card">
-      <h2>Tee Times</h2>
-      <div class="controls">
-        <input type="text" id="search-round5" placeholder="Search player name..." />
-        <span class="count" id="count-round5"></span>
-      </div>
-      <div class="tablewrap">
-        <table id="table-round5">
-          <thead><tr>
-            <th data-key="time" data-type="str">Tee Time</th>
-            <th data-key="hole" data-type="num">Start</th>
-            <th data-key="player" data-type="str">Player</th>
-            <th data-key="rank" data-type="num">Rank</th>
-            <th data-key="tier" data-type="str">Tier</th>
-            <th data-key="projection" data-type="num">Projection</th>
-          </tr></thead>
-          <tbody id="tbody-round5"></tbody>
-        </table>
-      </div>
-      <div class="legend">Rank/Tier/Projection reflect standing after Round 4. "New/No data" = first tracked appearance of the season.</div>
+      <h3 style="margin:0 0 6px;">Dead money in the field</h3>
+      <p style="margin:0;">Mathematically eliminated but teeing off anyway: <strong>Trosen, Biffar, Watt Mike, Kennedy, Dunham, Reardon</strong>. They can't reach the Cup, but every finishing position they occupy is one that doesn't go to a live bubble player — marginally helpful to everyone still in it. <strong>Max, Visscher, Heck</strong> are alive only on a miracle (perfect finish + soft cutoff).</p>
     </div>
+
     <div class="card">
-      <h2>Tracked Players NOT on the Tee Sheet</h2>
-      <div class="tablewrap">
-        <table id="table-r5missing">
-          <thead><tr>
-            <th data-key="rank" data-type="num">Rank</th>
-            <th data-key="name" data-type="str">Player</th>
-            <th data-key="tier" data-type="str">Tier</th>
-            <th data-key="projection" data-type="num">Projection</th>
-          </tr></thead>
-          <tbody id="tbody-r5missing"></tbody>
-        </table>
-      </div>
+      <h3 style="margin:0 0 6px;">New faces this round</h3>
+      <p style="margin:0;"><strong>Brown, Scott</strong> and <strong>Hanson, Matthew</strong> appear with no prior tracked rounds. With only R6 + R7 left, a newcomer maxes at 2 counting rounds — no Cup path this season, but worth a glance in person in case a fresh handicap steals finishing spots.</p>
     </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;">Full Round 6 signups (82)</h3>
+      <div class="r6roster"><span class="r6name">Archuleta, Phil</span><span class="r6name">Asbury, Thomas</span><span class="r6name">Balk, John</span><span class="r6name">Ball, Daron</span><span class="r6name">Barton, Scott</span><span class="r6name">Biffar, William</span><span class="r6name">Bisson, Patrick</span><span class="r6name">Blanco, Gabriel</span><span class="r6name">Book, Dustin</span><span class="r6name">Brown, Jason</span><span class="r6name">Brown, Scott</span><span class="r6name">Drew, Mark</span><span class="r6name">Ducey, Jeremy</span><span class="r6name">Duke, Jim</span><span class="r6name">Duke, Shawn</span><span class="r6name">Dunham, Ryan</span><span class="r6name">Egan, Dan</span><span class="r6name">Eleyet, Stephen</span><span class="r6name">Fadgen, Sean</span><span class="r6name">Fiedler, David</span><span class="r6name">Field, Gary</span><span class="r6name">Filer, Bob</span><span class="r6name">Fleenor, Jerry</span><span class="r6name">Ford, Russ</span><span class="r6name">Frank, Tracey</span><span class="r6name">Fuhrman, Robert</span><span class="r6name">Gaultney, Mike</span><span class="r6name">Gehrmann, Tom</span><span class="r6name">Georges, Wes</span><span class="r6name">Godwin, Gabriel</span><span class="r6name">Gowler, Matt</span><span class="r6name">Grundy, Chris</span><span class="r6name">Guinta, Damon</span><span class="r6name">Hanson, Jim</span><span class="r6name">Hanson, Matthew</span><span class="r6name">Harris, Scott</span><span class="r6name">Hatchell, Mark</span><span class="r6name">Heck, Kirby</span><span class="r6name">Homer, Bruce</span><span class="r6name">Hubbell, Brad</span><span class="r6name">Jones, Mark</span><span class="r6name">Kellar, Robert</span><span class="r6name">Kennedy, Bob</span><span class="r6name">Lane, Matt</span><span class="r6name">Law, Craig</span><span class="r6name">Liljeberg, Curt</span><span class="r6name">Lowe, Zack</span><span class="r6name">Lucero, Mitchel</span><span class="r6name">Martinez, John</span><span class="r6name">Max, Mark</span><span class="r6name">McLain, Matt</span><span class="r6name">McLemore, John</span><span class="r6name">O'Kelly, Kurtis</span><span class="r6name">Olson, Ty</span><span class="r6name">Paulauski, Dennis</span><span class="r6name">Paxson, Ronald</span><span class="r6name">Petersen, Bret</span><span class="r6name">Reardon, John</span><span class="r6name">Reynolds, Kevin</span><span class="r6name">Rider, Kenneth</span><span class="r6name">Roberts, Jim</span><span class="r6name">Rooney, Owen</span><span class="r6name">Roth, Bill</span><span class="r6name">Rush, Tim</span><span class="r6name">Rzonca, Tad</span><span class="r6name">Schmitz, Paul</span><span class="r6name">Spiro, Joe</span><span class="r6name">Sullivan, Mike</span><span class="r6name">Szabo, Keith</span><span class="r6name">Teets, Matthew</span><span class="r6name">Telle, Clifford</span><span class="r6name">Thompson, Jason</span><span class="r6name">Trosen, Michael</span><span class="r6name">Verce, Landon</span><span class="r6name">Viliesis, Peter</span><span class="r6name">Visscher, Jon</span><span class="r6name">Watt, Mike</span><span class="r6name">Watt, Steven</span><span class="r6name">Weakly, Jeff</span><span class="r6name">Westfall, Ken</span><span class="r6name">Woody, Chris</span><span class="r6name">Yohanan, James</span></div>
+    </div>
+
   </div>
 
 
@@ -425,8 +415,8 @@ const roundsData = [{"name": "Archuleta, Phil", "r1": 31.5, "r2": 69.5, "r3": 56
 const grossData = [{"name": "Archuleta, Phil", "g1": 88.0, "g2": 85.0, "g3": 86.0, "g4": 89.0, "isYou": false}, {"name": "Asbury, Thomas", "g1": 86.0, "g2": 87.0, "g3": 87.0, "g4": null, "isYou": false}, {"name": "Asbury, William", "g1": 90.0, "g2": 97.0, "g3": 88.0, "g4": 89.0, "isYou": false}, {"name": "Baldini, Eric", "g1": 101.0, "g2": null, "g3": 102.0, "g4": null, "isYou": false}, {"name": "Balk, John", "g1": 89.0, "g2": null, "g3": 83.0, "g4": 85.0, "isYou": false}, {"name": "Ball, Daron", "g1": 72.0, "g2": 76.0, "g3": 73.0, "g4": 83.0, "isYou": false}, {"name": "Barnes, Darek", "g1": 82.0, "g2": 85.0, "g3": 90.0, "g4": 90.0, "isYou": false}, {"name": "Barton, Scott", "g1": 79.0, "g2": 89.0, "g3": 83.0, "g4": 83.0, "isYou": false}, {"name": "Bean, Matt", "g1": null, "g2": 97.0, "g3": null, "g4": 96.0, "isYou": false}, {"name": "Biffar, William", "g1": 112.0, "g2": 111.0, "g3": 113.0, "g4": null, "isYou": false}, {"name": "Bisson, Patrick", "g1": 87.0, "g2": 96.0, "g3": 87.0, "g4": 82.0, "isYou": false}, {"name": "Blanco, Gabriel", "g1": 82.0, "g2": 85.0, "g3": 79.0, "g4": 85.0, "isYou": false}, {"name": "Book, Dustin", "g1": 83.0, "g2": null, "g3": 83.0, "g4": 88.0, "isYou": false}, {"name": "Brown, Jason", "g1": null, "g2": 83.0, "g3": null, "g4": 76.0, "isYou": false}, {"name": "Bucher, Brian", "g1": 76.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Chaney, Blake", "g1": 123.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Cox, Theodore E.", "g1": 90.0, "g2": 96.0, "g3": 92.0, "g4": null, "isYou": false}, {"name": "Detora, Michael", "g1": 82.0, "g2": 81.0, "g3": null, "g4": null, "isYou": false}, {"name": "Dombaugh, Brad", "g1": 82.0, "g2": null, "g3": 83.0, "g4": null, "isYou": false}, {"name": "Drew, Mark", "g1": null, "g2": 101.0, "g3": 90.0, "g4": 94.0, "isYou": false}, {"name": "Ducey, Jeremy", "g1": 79.0, "g2": 86.0, "g3": 77.0, "g4": null, "isYou": false}, {"name": "Duke, Jim", "g1": 103.0, "g2": 102.0, "g3": 101.0, "g4": 113.0, "isYou": false}, {"name": "Duke, Shawn", "g1": 84.0, "g2": null, "g3": 77.0, "g4": 80.0, "isYou": false}, {"name": "Dumler, Tim", "g1": null, "g2": null, "g3": 91.0, "g4": null, "isYou": false}, {"name": "Dunham, Ryan", "g1": 95.0, "g2": null, "g3": 91.0, "g4": null, "isYou": false}, {"name": "Egan, Dan", "g1": 85.0, "g2": 79.0, "g3": 80.0, "g4": 68.0, "isYou": false}, {"name": "Eleyet, Stephen", "g1": 91.0, "g2": 99.0, "g3": 97.0, "g4": null, "isYou": false}, {"name": "Fadgen, Sean", "g1": 93.0, "g2": null, "g3": 92.0, "g4": 88.0, "isYou": false}, {"name": "Fiedler, David", "g1": 79.0, "g2": null, "g3": 88.0, "g4": 75.0, "isYou": false}, {"name": "Field, Gary", "g1": 93.0, "g2": 100.0, "g3": 89.0, "g4": 97.0, "isYou": false}, {"name": "Filer, Bob", "g1": 76.0, "g2": 75.0, "g3": 78.0, "g4": 86.0, "isYou": false}, {"name": "Fleenor, Jerry", "g1": 86.0, "g2": null, "g3": 97.0, "g4": 92.0, "isYou": false}, {"name": "Foote, Doug", "g1": 105.0, "g2": 98.0, "g3": null, "g4": 87.0, "isYou": false}, {"name": "Ford, Russ", "g1": 71.0, "g2": 71.0, "g3": 78.0, "g4": 80.0, "isYou": false}, {"name": "Frank, Tracey", "g1": 87.0, "g2": 86.0, "g3": 90.0, "g4": 86.0, "isYou": false}, {"name": "Fuhrman, Robert", "g1": 91.0, "g2": 90.0, "g3": 89.0, "g4": 88.0, "isYou": false}, {"name": "Gaultney, Mike", "g1": 85.0, "g2": 93.0, "g3": 83.0, "g4": 82.0, "isYou": false}, {"name": "Gehrmann, Tom", "g1": null, "g2": 86.0, "g3": 87.0, "g4": 81.0, "isYou": false}, {"name": "Georges, Wes", "g1": 76.0, "g2": 90.0, "g3": 78.0, "g4": 74.0, "isYou": false}, {"name": "Godwin, Gabriel", "g1": 83.0, "g2": null, "g3": 89.0, "g4": 86.0, "isYou": false}, {"name": "Goodell, Gary", "g1": 127.0, "g2": 125.0, "g3": 119.0, "g4": 109.0, "isYou": false}, {"name": "Gowler, Matt", "g1": 91.0, "g2": 100.0, "g3": null, "g4": 97.0, "isYou": false}, {"name": "Grundy, Chris", "g1": 91.0, "g2": 92.0, "g3": 78.0, "g4": 83.0, "isYou": false}, {"name": "Guinta, Damon", "g1": null, "g2": 86.0, "g3": 93.0, "g4": 87.0, "isYou": false}, {"name": "Hall, Chris", "g1": 93.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Hanson, Jim", "g1": 86.0, "g2": 81.0, "g3": 80.0, "g4": 76.0, "isYou": false}, {"name": "Hanson, Matthew", "g1": null, "g2": null, "g3": 85.0, "g4": null, "isYou": false}, {"name": "Harris, Scott", "g1": 79.0, "g2": 83.0, "g3": 83.0, "g4": null, "isYou": false}, {"name": "Hatchell, Mark", "g1": null, "g2": 82.0, "g3": 81.0, "g4": 75.0, "isYou": false}, {"name": "Heck, Kirby", "g1": 88.0, "g2": 87.0, "g3": null, "g4": 90.0, "isYou": false}, {"name": "Holzwarth, John", "g1": 101.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Homer, Bruce", "g1": 88.0, "g2": 93.0, "g3": 86.0, "g4": 88.0, "isYou": false}, {"name": "Hook, Jon", "g1": 96.0, "g2": 87.0, "g3": 101.0, "g4": 93.0, "isYou": false}, {"name": "Howard, Cole", "g1": 71.0, "g2": 74.0, "g3": null, "g4": null, "isYou": false}, {"name": "Hubbell, Brad", "g1": 78.0, "g2": 84.0, "g3": 97.0, "g4": 91.0, "isYou": false}, {"name": "Jaworowski, Dan", "g1": null, "g2": null, "g3": 97.0, "g4": 91.0, "isYou": false}, {"name": "Jenkins, Leonard", "g1": null, "g2": 90.0, "g3": 91.0, "g4": null, "isYou": false}, {"name": "Jones, Mark", "g1": null, "g2": 85.0, "g3": 77.0, "g4": null, "isYou": false}, {"name": "Kellar, Robert", "g1": 83.0, "g2": 82.0, "g3": 86.0, "g4": 87.0, "isYou": false}, {"name": "Kennedy, Bob", "g1": null, "g2": 96.0, "g3": 97.0, "g4": 96.0, "isYou": false}, {"name": "Lane, Matt", "g1": 83.0, "g2": null, "g3": 84.0, "g4": 77.0, "isYou": false}, {"name": "Laudick, Lucas", "g1": 73.0, "g2": 75.0, "g3": 70.0, "g4": 71.0, "isYou": false}, {"name": "Laudick, Zac", "g1": null, "g2": 78.0, "g3": 77.0, "g4": 82.0, "isYou": false}, {"name": "Law, Craig", "g1": 77.0, "g2": 81.0, "g3": 75.0, "g4": 74.0, "isYou": false}, {"name": "Lenz, Chad", "g1": 97.0, "g2": 94.0, "g3": null, "g4": 105.0, "isYou": false}, {"name": "Leveque, Anthony", "g1": 88.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Liljeberg, Curt", "g1": 73.0, "g2": 79.0, "g3": 82.0, "g4": 83.0, "isYou": false}, {"name": "Lindsey, Brian", "g1": 76.0, "g2": null, "g3": 83.0, "g4": null, "isYou": false}, {"name": "Lowe, Robert", "g1": null, "g2": 95.0, "g3": null, "g4": null, "isYou": false}, {"name": "Lowe, Zack", "g1": 84.0, "g2": 91.0, "g3": 86.0, "g4": null, "isYou": false}, {"name": "Lucero, Mitchel", "g1": 77.0, "g2": 80.0, "g3": 88.0, "g4": 85.0, "isYou": false}, {"name": "Lundquist, Bill", "g1": 85.0, "g2": 87.0, "g3": null, "g4": null, "isYou": false}, {"name": "Maegdlin, Steve", "g1": 91.0, "g2": 84.0, "g3": 85.0, "g4": 82.0, "isYou": false}, {"name": "Martinez, John", "g1": 84.0, "g2": 87.0, "g3": 82.0, "g4": 89.0, "isYou": false}, {"name": "Max, Mark", "g1": null, "g2": null, "g3": 83.0, "g4": null, "isYou": false}, {"name": "McFarland, Josh", "g1": null, "g2": null, "g3": 82.0, "g4": null, "isYou": false}, {"name": "McLain, Matt", "g1": 71.0, "g2": 73.0, "g3": 71.0, "g4": 75.0, "isYou": false}, {"name": "McLemore, John", "g1": 93.0, "g2": null, "g3": 86.0, "g4": 92.0, "isYou": false}, {"name": "Mora, Henry", "g1": 81.0, "g2": 88.0, "g3": 82.0, "g4": null, "isYou": false}, {"name": "Neary, Steve", "g1": 69.0, "g2": null, "g3": 74.0, "g4": 70.0, "isYou": false}, {"name": "O'Kelly, Kurtis", "g1": 87.0, "g2": 88.0, "g3": 92.0, "g4": 79.0, "isYou": false}, {"name": "Olson, Ty", "g1": 82.0, "g2": 79.0, "g3": 88.0, "g4": 85.0, "isYou": false}, {"name": "Paulauski, Dennis", "g1": 76.0, "g2": 73.0, "g3": 81.0, "g4": 79.0, "isYou": false}, {"name": "Paxson, Ronald", "g1": null, "g2": 99.0, "g3": 95.0, "g4": 88.0, "isYou": false}, {"name": "Petersen, Bret", "g1": 91.0, "g2": 81.0, "g3": null, "g4": 88.0, "isYou": false}, {"name": "Pogue, James", "g1": null, "g2": 77.0, "g3": null, "g4": null, "isYou": false}, {"name": "Reardon, John", "g1": null, "g2": 98.0, "g3": 96.0, "g4": null, "isYou": false}, {"name": "Reynolds, Kevin", "g1": 71.0, "g2": 78.0, "g3": 75.0, "g4": 69.0, "isYou": false}, {"name": "Richter, Scott", "g1": 78.0, "g2": 78.0, "g3": null, "g4": 80.0, "isYou": false}, {"name": "Rider, Kenneth", "g1": 84.0, "g2": 88.0, "g3": 92.0, "g4": 83.0, "isYou": false}, {"name": "Roberts, Jim", "g1": 87.0, "g2": 86.0, "g3": 82.0, "g4": 84.0, "isYou": false}, {"name": "Roberts, Mose", "g1": 114.0, "g2": 101.0, "g3": null, "g4": 105.0, "isYou": false}, {"name": "Rooney, Owen", "g1": 83.0, "g2": 83.0, "g3": 83.0, "g4": 83.0, "isYou": false}, {"name": "Roth, Bill", "g1": null, "g2": null, "g3": 106.0, "g4": 98.0, "isYou": false}, {"name": "Rush, Tim", "g1": 79.0, "g2": null, "g3": 79.0, "g4": 76.0, "isYou": false}, {"name": "Rzonca, Tad", "g1": null, "g2": null, "g3": 81.0, "g4": 81.0, "isYou": false}, {"name": "Schmitz, Paul", "g1": 85.0, "g2": 84.0, "g3": 88.0, "g4": 83.0, "isYou": false}, {"name": "Sherwood, Rob", "g1": 80.0, "g2": 82.0, "g3": 78.0, "g4": null, "isYou": false}, {"name": "Shub, Jonathan", "g1": 93.0, "g2": 83.0, "g3": 81.0, "g4": 80.0, "isYou": false}, {"name": "Spiro, Joe", "g1": 81.0, "g2": null, "g3": 84.0, "g4": null, "isYou": false}, {"name": "Steigerwald, James", "g1": 80.0, "g2": 80.0, "g3": 83.0, "g4": 98.0, "isYou": false}, {"name": "Sullivan, Mike", "g1": 97.0, "g2": 88.0, "g3": 92.0, "g4": 95.0, "isYou": false}, {"name": "Swiatek, Stephen", "g1": 80.0, "g2": 97.0, "g3": 88.0, "g4": null, "isYou": false}, {"name": "Szabo, Keith", "g1": 72.0, "g2": null, "g3": 99.0, "g4": 91.0, "isYou": false}, {"name": "Talus, Jeff", "g1": 95.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Teets, Matthew", "g1": null, "g2": 91.0, "g3": 91.0, "g4": 92.0, "isYou": false}, {"name": "Telle, Clifford", "g1": 79.0, "g2": 84.0, "g3": 84.0, "g4": 76.0, "isYou": false}, {"name": "Thompson, Jason", "g1": null, "g2": null, "g3": 86.0, "g4": 86.0, "isYou": false}, {"name": "Todd, David", "g1": null, "g2": null, "g3": null, "g4": 86.0, "isYou": false}, {"name": "Trosen, Michael", "g1": 120.0, "g2": 119.0, "g3": 112.0, "g4": 119.0, "isYou": false}, {"name": "Tweden, Cory", "g1": 93.0, "g2": null, "g3": null, "g4": null, "isYou": false}, {"name": "Verce, Landon", "g1": 91.0, "g2": 91.0, "g3": 87.0, "g4": 89.0, "isYou": true}, {"name": "Viliesis, Peter", "g1": 76.0, "g2": 81.0, "g3": 81.0, "g4": 75.0, "isYou": false}, {"name": "Visscher, Jon", "g1": 84.0, "g2": null, "g3": 86.0, "g4": null, "isYou": false}, {"name": "Watt, Mike", "g1": 93.0, "g2": null, "g3": 94.0, "g4": null, "isYou": false}, {"name": "Watt, Steven", "g1": 80.0, "g2": 82.0, "g3": null, "g4": 82.0, "isYou": false}, {"name": "Weakly, Jeff", "g1": 94.0, "g2": 97.0, "g3": 93.0, "g4": 90.0, "isYou": false}, {"name": "Westfall, Ken", "g1": 94.0, "g2": 93.0, "g3": 88.0, "g4": 90.0, "isYou": false}, {"name": "Wilson, Matt", "g1": 77.0, "g2": 78.0, "g3": null, "g4": null, "isYou": false}, {"name": "Windom, Stephen", "g1": 85.0, "g2": 88.0, "g3": 88.0, "g4": null, "isYou": false}, {"name": "Wolff, Mark", "g1": 108.0, "g2": 102.0, "g3": 113.0, "g4": 106.0, "isYou": false}, {"name": "Woody, Chris", "g1": 92.0, "g2": 85.0, "g3": 100.0, "g4": 93.0, "isYou": false}, {"name": "Yohanan, James", "g1": 79.0, "g2": 83.0, "g3": null, "g4": 92.0, "isYou": false}];
 const skinsData = [{"round": "Round 1 (5/16)", "player": "Cox, Theodore E.", "skins": 1, "detail": "Net 3.5 on 8"}, {"round": "Round 1 (5/16)", "player": "Laudick, Lucas", "skins": 1, "detail": "Eagle on 10"}, {"round": "Round 1 (5/16)", "player": "Lindsey, Brian", "skins": 1, "detail": "Net 2.5 on 14"}, {"round": "Round 1 (5/16)", "player": "Yohanan, James", "skins": 1, "detail": "Net 2.5 on 12"}, {"round": "Round 1 (5/16)", "player": "Szabo, Keith", "skins": 1, "detail": "Net 2.5 on 11"}, {"round": "Round 1 (5/16)", "player": "Martinez, John", "skins": 1, "detail": "Net 2.5 on 1"}, {"round": "Round 1 (5/16)", "player": "Hall, Chris", "skins": 1, "detail": "Net 3.5 on 3"}, {"round": "Round 4 (6/27)", "player": "Reynolds, Kevin", "skins": 2, "detail": "Eagle on 14, Eagle on 18"}, {"round": "Round 4 (6/27)", "player": "Gowler, Matt", "skins": 1, "detail": "Net 2.5 on 1"}, {"round": "Round 4 (6/27)", "player": "Jaworowski, Dan", "skins": 1, "detail": "Net 1.5 on 15"}, {"round": "Round 4 (6/27)", "player": "Fiedler, David", "skins": 1, "detail": "Net 2.5 on 9"}, {"round": "Round 4 (6/27)", "player": "Balk, John", "skins": 1, "detail": "Net 2.5 on 16"}, {"round": "Round 2 (5/30)", "player": "Duke, Jim", "skins": 2, "detail": "Birdie on 1, Net 1.5 on 13"}, {"round": "Round 2 (5/30)", "player": "Liljeberg, Curt", "skins": 1, "detail": "Net 2.5 on 11"}, {"round": "Round 2 (5/30)", "player": "Grundy, Chris", "skins": 1, "detail": "Net 2.5 on 12"}, {"round": "Round 2 (5/30)", "player": "Rooney, Owen", "skins": 1, "detail": "Net 2.5 on 5"}, {"round": "Round 2 (5/30)", "player": "Jones, Mark", "skins": 1, "detail": "Net 2.5 on 14"}, {"round": "Round 2 (5/30)", "player": "Yohanan, James", "skins": 1, "detail": "Net 2.5 on 18"}, {"round": "Round 2 (5/30)", "player": "Lowe, Zack", "skins": 1, "detail": "Net 2.5 on 4"}, {"round": "Round 2 (5/30)", "player": "Pogue, James", "skins": 1, "detail": "Eagle on 3"}, {"round": "Round 2 (5/30)", "player": "Westfall, Ken", "skins": 1, "detail": "Hole in One on 2"}, {"round": "Round 3 (6/19)", "player": "Sherwood, Rob", "skins": 1, "detail": "Birdie on 6"}, {"round": "Round 3 (6/19)", "player": "Duke, Shawn", "skins": 1, "detail": "Eagle on 10"}, {"round": "Round 3 (6/19)", "player": "Georges, Wes", "skins": 1, "detail": "Birdie on 4"}, {"round": "Round 3 (6/19)", "player": "Field, Gary", "skins": 1, "detail": "Eagle on 5"}, {"round": "Round 3 (6/19)", "player": "Hanson, Jim", "skins": 1, "detail": "Net 2.5 on 18"}, {"round": "Round 3 (6/19)", "player": "Ford, Russ", "skins": 1, "detail": "Birdie on 17"}];
 const moversData = [{"name": "Archuleta, Phil", "r1": 31.5, "r4": 43.5, "trend": 12.0, "isYou": false}, {"name": "Asbury, William", "r1": 31.5, "r4": 50.5, "trend": 19.0, "isYou": false}, {"name": "Balk, John", "r1": 44.0, "r4": 81.0, "trend": 37.0, "isYou": false}, {"name": "Ball, Daron", "r1": 93.5, "r4": 36.5, "trend": -57.0, "isYou": false}, {"name": "Barnes, Darek", "r1": 96.0, "r4": 27.0, "trend": -69.0, "isYou": false}, {"name": "Barton, Scott", "r1": 77.5, "r4": 57.0, "trend": -20.5, "isYou": false}, {"name": "Bisson, Patrick", "r1": 23.0, "r4": 76.0, "trend": 53.0, "isYou": false}, {"name": "Blanco, Gabriel", "r1": 77.5, "r4": 65.0, "trend": -12.5, "isYou": false}, {"name": "Book, Dustin", "r1": 61.0, "r4": 43.5, "trend": -17.5, "isYou": false}, {"name": "Duke, Jim", "r1": 31.5, "r4": 20.0, "trend": -11.5, "isYou": false}, {"name": "Duke, Shawn", "r1": 37.5, "r4": 70.5, "trend": 33.0, "isYou": false}, {"name": "Egan, Dan", "r1": 27.0, "r4": 100.0, "trend": 73.0, "isYou": false}, {"name": "Fadgen, Sean", "r1": 23.0, "r4": 65.0, "trend": 42.0, "isYou": false}, {"name": "Fiedler, David", "r1": 77.5, "r4": 97.5, "trend": 20.0, "isYou": false}, {"name": "Field, Gary", "r1": 61.0, "r4": 36.5, "trend": -24.5, "isYou": false}, {"name": "Filer, Bob", "r1": 54.5, "r4": 22.0, "trend": -32.5, "isYou": false}, {"name": "Fleenor, Jerry", "r1": 68.5, "r4": 43.5, "trend": -25.0, "isYou": false}, {"name": "Foote, Doug", "r1": 20.0, "r4": 76.0, "trend": 56.0, "isYou": false}, {"name": "Ford, Russ", "r1": 93.5, "r4": 31.0, "trend": -62.5, "isYou": false}, {"name": "Frank, Tracey", "r1": 44.0, "r4": 57.0, "trend": 13.0, "isYou": false}, {"name": "Fuhrman, Robert", "r1": 20.0, "r4": 43.5, "trend": 23.5, "isYou": false}, {"name": "Gaultney, Mike", "r1": 49.5, "r4": 65.0, "trend": 15.5, "isYou": false}, {"name": "Georges, Wes", "r1": 77.5, "r4": 92.5, "trend": 15.0, "isYou": false}, {"name": "Godwin, Gabriel", "r1": 68.5, "r4": 57.0, "trend": -11.5, "isYou": false}, {"name": "Goodell, Gary", "r1": 20.0, "r4": 43.5, "trend": 23.5, "isYou": false}, {"name": "Gowler, Matt", "r1": 85.5, "r4": 70.5, "trend": -15.0, "isYou": false}, {"name": "Grundy, Chris", "r1": 37.5, "r4": 86.5, "trend": 49.0, "isYou": false}, {"name": "Hanson, Jim", "r1": 44.0, "r4": 95.5, "trend": 51.5, "isYou": false}, {"name": "Heck, Kirby", "r1": 23.0, "r4": 36.5, "trend": 13.5, "isYou": false}, {"name": "Homer, Bruce", "r1": 77.5, "r4": 65.0, "trend": -12.5, "isYou": false}, {"name": "Hook, Jon", "r1": 20.0, "r4": 43.5, "trend": 23.5, "isYou": false}, {"name": "Hubbell, Brad", "r1": 98.0, "r4": 31.0, "trend": -67.0, "isYou": false}, {"name": "Kellar, Robert", "r1": 68.5, "r4": 48.0, "trend": -20.5, "isYou": false}, {"name": "Lane, Matt", "r1": 20.0, "r4": 65.0, "trend": 45.0, "isYou": false}, {"name": "Laudick, Lucas", "r1": 49.5, "r4": 76.0, "trend": 26.5, "isYou": false}, {"name": "Law, Craig", "r1": 85.5, "r4": 99.0, "trend": 13.5, "isYou": false}, {"name": "Lenz, Chad", "r1": 20.0, "r4": 20.0, "trend": 0.0, "isYou": false}, {"name": "Liljeberg, Curt", "r1": 98.0, "r4": 36.5, "trend": -61.5, "isYou": false}, {"name": "Lucero, Mitchel", "r1": 68.5, "r4": 36.5, "trend": -32.0, "isYou": false}, {"name": "Maegdlin, Steve", "r1": 20.0, "r4": 57.0, "trend": 37.0, "isYou": false}, {"name": "Martinez, John", "r1": 44.0, "r4": 31.0, "trend": -13.0, "isYou": false}, {"name": "McLain, Matt", "r1": 98.0, "r4": 86.5, "trend": -11.5, "isYou": false}, {"name": "McLemore, John", "r1": 61.0, "r4": 57.0, "trend": -4.0, "isYou": false}, {"name": "Neary, Steve", "r1": 85.5, "r4": 92.5, "trend": 7.0, "isYou": false}, {"name": "O'Kelly, Kurtis", "r1": 31.5, "r4": 86.5, "trend": 55.0, "isYou": false}, {"name": "Olson, Ty", "r1": 77.5, "r4": 50.5, "trend": -27.0, "isYou": false}, {"name": "Paulauski, Dennis", "r1": 90.0, "r4": 70.5, "trend": -19.5, "isYou": false}, {"name": "Petersen, Bret", "r1": 20.0, "r4": 31.0, "trend": 11.0, "isYou": false}, {"name": "Reynolds, Kevin", "r1": 77.5, "r4": 92.5, "trend": 15.0, "isYou": false}, {"name": "Richter, Scott", "r1": 77.5, "r4": 65.0, "trend": -12.5, "isYou": false}, {"name": "Rider, Kenneth", "r1": 61.0, "r4": 86.5, "trend": 25.5, "isYou": false}, {"name": "Roberts, Jim", "r1": 61.0, "r4": 76.0, "trend": 15.0, "isYou": false}, {"name": "Roberts, Mose", "r1": 20.0, "r4": 27.0, "trend": 7.0, "isYou": false}, {"name": "Rooney, Owen", "r1": 37.5, "r4": 50.5, "trend": 13.0, "isYou": false}, {"name": "Rush, Tim", "r1": 85.5, "r4": 97.5, "trend": 12.0, "isYou": false}, {"name": "Schmitz, Paul", "r1": 27.0, "r4": 57.0, "trend": 30.0, "isYou": false}, {"name": "Shub, Jonathan", "r1": 20.0, "r4": 86.5, "trend": 66.5, "isYou": false}, {"name": "Steigerwald, James", "r1": 54.5, "r4": 20.0, "trend": -34.5, "isYou": false}, {"name": "Sullivan, Mike", "r1": 23.0, "r4": 43.5, "trend": 20.5, "isYou": false}, {"name": "Szabo, Keith", "r1": 100.0, "r4": 23.0, "trend": -77.0, "isYou": false}, {"name": "Telle, Clifford", "r1": 54.5, "r4": 86.5, "trend": 32.0, "isYou": false}, {"name": "Trosen, Michael", "r1": 20.0, "r4": 20.0, "trend": 0.0, "isYou": false}, {"name": "Verce, Landon", "r1": 37.5, "r4": 57.0, "trend": 19.5, "isYou": true}, {"name": "Viliesis, Peter", "r1": 77.5, "r4": 81.0, "trend": 3.5, "isYou": false}, {"name": "Watt, Steven", "r1": 61.0, "r4": 76.0, "trend": 15.0, "isYou": false}, {"name": "Weakly, Jeff", "r1": 27.0, "r4": 57.0, "trend": 30.0, "isYou": false}, {"name": "Westfall, Ken", "r1": 44.0, "r4": 65.0, "trend": 21.0, "isYou": false}, {"name": "Wolff, Mark", "r1": 20.0, "r4": 20.0, "trend": 0.0, "isYou": false}, {"name": "Woody, Chris", "r1": 20.0, "r4": 27.0, "trend": 7.0, "isYou": false}, {"name": "Yohanan, James", "r1": 93.5, "r4": 24.5, "trend": -69.0, "isYou": false}];
-const teeSheetData = [{"time": "7:00 AM", "hole": 1, "player": "Laudick, Zac", "rank": 53, "tier": "Bubble", "projection": 287.8}, {"time": "7:00 AM", "hole": 1, "player": "Weakly, Jeff", "rank": 90, "tier": "Longshot", "projection": 238.4}, {"time": "7:00 AM", "hole": 1, "player": "Sherwood, Rob", "rank": 52, "tier": "Bubble", "projection": 291.0}, {"time": "7:00 AM", "hole": 1, "player": "Barton, Scott", "rank": 48, "tier": "Probable", "projection": 317.6}, {"time": "7:00 AM", "hole": 10, "player": "Reynolds, Kevin", "rank": 20, "tier": "Comfortable", "projection": 365.4}, {"time": "7:00 AM", "hole": 10, "player": "Max, Mark", "rank": null, "tier": "1 round (R3: 82.0 pts)", "projection": null}, {"time": "7:00 AM", "hole": 10, "player": "Blanco, Gabriel", "rank": 10, "tier": "Lock", "projection": 388.9}, {"time": "7:00 AM", "hole": 10, "player": "Watt, Mike", "rank": 100, "tier": "Longshot", "projection": 203.2}, {"time": "7:09 AM", "hole": 1, "player": "Lane, Matt", "rank": 95, "tier": "Longshot", "projection": 236.9}, {"time": "7:09 AM", "hole": 1, "player": "McLemore, John", "rank": 19, "tier": "Comfortable", "projection": 357.8}, {"time": "7:09 AM", "hole": 1, "player": "Law, Craig", "rank": 2, "tier": "Lock", "projection": 434.9}, {"time": "7:09 AM", "hole": 1, "player": "Windom, Stephen", "rank": 79, "tier": "Longshot", "projection": 230.7}, {"time": "7:09 AM", "hole": 10, "player": "Neary, Steve", "rank": 8, "tier": "Comfortable", "projection": 392.4}, {"time": "7:09 AM", "hole": 10, "player": "Roberts, Mose", "rank": 97, "tier": "Longshot", "projection": 211.9}, {"time": "7:09 AM", "hole": 10, "player": "Telle, Clifford", "rank": 60, "tier": "Probable", "projection": 300.9}, {"time": "7:09 AM", "hole": 10, "player": "O'Kelly, Kurtis", "rank": 78, "tier": "Longshot", "projection": 271.2}, {"time": "7:18 AM", "hole": 1, "player": "Bisson, Patrick", "rank": 89, "tier": "Longshot", "projection": 248.9}, {"time": "7:18 AM", "hole": 1, "player": "Field, Gary", "rank": 49, "tier": "Comfortable", "projection": 324.4}, {"time": "7:18 AM", "hole": 1, "player": "Detora, Michael", "rank": 13, "tier": "Comfortable", "projection": 361.5}, {"time": "7:18 AM", "hole": 1, "player": "Fadgen, Sean", "rank": 86, "tier": "Longshot", "projection": 246.1}, {"time": "7:18 AM", "hole": 10, "player": "Visscher, Jon", "rank": 82, "tier": "Longshot", "projection": 232.9}, {"time": "7:18 AM", "hole": 10, "player": "Biffar, William", "rank": 107, "tier": "Longshot", "projection": 155.9}, {"time": "7:18 AM", "hole": 10, "player": "Talus, Jeff", "rank": null, "tier": "1 round (R1: 20.0 pts)", "projection": null}, {"time": "7:18 AM", "hole": 10, "player": "Baldini, Eric", "rank": 99, "tier": "Longshot", "projection": 203.2}, {"time": "7:27 AM", "hole": 1, "player": "Pogue, James", "rank": null, "tier": "1 round (R2: 96.0 pts)", "projection": null}, {"time": "7:27 AM", "hole": 1, "player": "Grundy, Chris", "rank": 25, "tier": "Comfortable", "projection": 376.7}, {"time": "7:27 AM", "hole": 1, "player": "Hatchell, Mark", "rank": 40, "tier": "Comfortable", "projection": 325.2}, {"time": "7:27 AM", "hole": 1, "player": "Rzonca, Tad", "rank": 23, "tier": "Comfortable", "projection": 341.4}, {"time": "7:27 AM", "hole": 10, "player": "Ford, Russ", "rank": 34, "tier": "Comfortable", "projection": 374.2}, {"time": "7:27 AM", "hole": 10, "player": "Stimple, Drew", "rank": null, "tier": "New/No data", "projection": null}, {"time": "7:27 AM", "hole": 10, "player": "Yohanan, James", "rank": 33, "tier": "Comfortable", "projection": 362.2}, {"time": "7:27 AM", "hole": 10, "player": "Verce, Landon", "rank": 45, "tier": "Probable", "projection": 311.4}, {"time": "7:36 AM", "hole": 1, "player": "Filer, Bob", "rank": 55, "tier": "Probable", "projection": 301.3}, {"time": "7:36 AM", "hole": 1, "player": "Goodell, Gary", "rank": 106, "tier": "Longshot", "projection": 170.2}, {"time": "7:36 AM", "hole": 1, "player": "Book, Dustin", "rank": 56, "tier": "Probable", "projection": 300.4}, {"time": "7:36 AM", "hole": 1, "player": "Drew, Mark", "rank": 65, "tier": "Bubble", "projection": 285.0}, {"time": "7:36 AM", "hole": 10, "player": "Shub, Jonathan", "rank": 30, "tier": "Comfortable", "projection": 370.6}, {"time": "7:36 AM", "hole": 10, "player": "Wolff, Mark", "rank": 109, "tier": "Longshot", "projection": 134.9}, {"time": "7:36 AM", "hole": 10, "player": "Barnes, Darek", "rank": 27, "tier": "Comfortable", "projection": 380.7}, {"time": "7:36 AM", "hole": 10, "player": "Roberts, Jim", "rank": 7, "tier": "Lock", "projection": 403.6}, {"time": "7:45 AM", "hole": 1, "player": "Szabo, Keith", "rank": 72, "tier": "Probable", "projection": 302.3}, {"time": "7:45 AM", "hole": 1, "player": "Jones, Mark", "rank": 5, "tier": "Comfortable", "projection": 400.9}, {"time": "7:45 AM", "hole": 1, "player": "Martinez, John", "rank": 74, "tier": "Longshot", "projection": 272.9}, {"time": "7:45 AM", "hole": 1, "player": "Archuleta, Phil", "rank": 66, "tier": "Bubble", "projection": 280.7}, {"time": "7:45 AM", "hole": 10, "player": "Laudick, Lucas", "rank": 26, "tier": "Comfortable", "projection": 350.7}, {"time": "7:45 AM", "hole": 10, "player": "Jaworowski, Dan", "rank": 44, "tier": "Probable", "projection": 310.8}, {"time": "7:45 AM", "hole": 10, "player": "Frank, Tracey", "rank": 67, "tier": "Bubble", "projection": 280.9}, {"time": "7:45 AM", "hole": 10, "player": "Olson, Ty", "rank": 38, "tier": "Comfortable", "projection": 358.4}, {"time": "7:54 AM", "hole": 1, "player": "Ball, Daron", "rank": 11, "tier": "Lock", "projection": 416.1}, {"time": "7:54 AM", "hole": 1, "player": "Sullivan, Mike", "rank": 51, "tier": "Comfortable", "projection": 328.9}, {"time": "7:54 AM", "hole": 1, "player": "Watt, Steven", "rank": 24, "tier": "Comfortable", "projection": 344.1}, {"time": "7:54 AM", "hole": 10, "player": "Duke, Shawn", "rank": 36, "tier": "Comfortable", "projection": 342.0}, {"time": "7:54 AM", "hole": 10, "player": "Fleenor, Jerry", "rank": 77, "tier": "Longshot", "projection": 262.0}, {"time": "7:54 AM", "hole": 10, "player": "Gehrmann, Tom", "rank": 61, "tier": "Bubble", "projection": 288.3}, {"time": "7:54 AM", "hole": 10, "player": "Lowe, Zack", "rank": 42, "tier": "Comfortable", "projection": 325.4}, {"time": "8:03 AM", "hole": 1, "player": "Fiedler, David", "rank": 37, "tier": "Comfortable", "projection": 357.9}, {"time": "8:03 AM", "hole": 1, "player": "Cox, Theodore E.", "rank": 73, "tier": "Longshot", "projection": 261.9}, {"time": "8:03 AM", "hole": 1, "player": "Maegdlin, Steve", "rank": 91, "tier": "Longshot", "projection": 236.7}, {"time": "8:03 AM", "hole": 1, "player": "Rider, Kenneth", "rank": 43, "tier": "Comfortable", "projection": 325.4}, {"time": "8:03 AM", "hole": 10, "player": "Egan, Dan", "rank": 21, "tier": "Comfortable", "projection": 381.6}, {"time": "8:03 AM", "hole": 10, "player": "Homer, Bruce", "rank": 14, "tier": "Comfortable", "projection": 366.7}, {"time": "8:03 AM", "hole": 10, "player": "Harris, Scott", "rank": 17, "tier": "Comfortable", "projection": 351.7}, {"time": "8:03 AM", "hole": 10, "player": "Schmitz, Paul", "rank": 83, "tier": "Longshot", "projection": 257.5}, {"time": "8:12 AM", "hole": 1, "player": "Brown, Jason", "rank": 16, "tier": "Comfortable", "projection": 356.8}, {"time": "8:12 AM", "hole": 1, "player": "Thompson, Jason", "rank": 4, "tier": "Comfortable", "projection": 412.2}, {"time": "8:12 AM", "hole": 1, "player": "Liljeberg, Curt", "rank": 32, "tier": "Comfortable", "projection": 367.2}, {"time": "8:12 AM", "hole": 1, "player": "Richter, Scott", "rank": 15, "tier": "Comfortable", "projection": 360.9}, {"time": "8:12 AM", "hole": 10, "player": "Viliesis, Peter", "rank": 39, "tier": "Comfortable", "projection": 339.2}, {"time": "8:12 AM", "hole": 10, "player": "Petersen, Bret", "rank": 75, "tier": "Bubble", "projection": 292.5}, {"time": "8:12 AM", "hole": 10, "player": "Lindsey, Brian", "rank": 28, "tier": "Comfortable", "projection": 336.8}, {"time": "8:21 AM", "hole": 1, "player": "Lucero, Mitchel", "rank": 71, "tier": "Bubble", "projection": 290.2}, {"time": "8:21 AM", "hole": 1, "player": "Paxson, Ronald", "rank": 47, "tier": "Probable", "projection": 314.0}, {"time": "8:21 AM", "hole": 1, "player": "Kellar, Robert", "rank": 31, "tier": "Comfortable", "projection": 346.2}, {"time": "8:21 AM", "hole": 1, "player": "Teets, Matthew", "rank": 81, "tier": "Longshot", "projection": 229.8}, {"time": "8:21 AM", "hole": 10, "player": "Paulauski, Dennis", "rank": 6, "tier": "Lock", "projection": 406.7}, {"time": "8:21 AM", "hole": 10, "player": "Gaultney, Mike", "rank": 54, "tier": "Probable", "projection": 305.2}, {"time": "8:21 AM", "hole": 10, "player": "Hall, Chris", "rank": null, "tier": "1 round (R1: 20.0 pts)", "projection": null}, {"time": "8:21 AM", "hole": 10, "player": "Guinta, Damon", "rank": 68, "tier": "Bubble", "projection": 280.3}, {"time": "8:30 AM", "hole": 1, "player": "McLain, Matt", "rank": 1, "tier": "Lock", "projection": 462.3}, {"time": "8:30 AM", "hole": 1, "player": "Fuhrman, Robert", "rank": 103, "tier": "Longshot", "projection": 192.4}, {"time": "8:30 AM", "hole": 1, "player": "Rush, Tim", "rank": 3, "tier": "Comfortable", "projection": 423.3}, {"time": "8:30 AM", "hole": 1, "player": "Woody, Chris", "rank": 93, "tier": "Longshot", "projection": 239.2}, {"time": "8:30 AM", "hole": 10, "player": "Asbury, Thomas", "rank": 62, "tier": "Longshot", "projection": 268.3}, {"time": "8:30 AM", "hole": 10, "player": "Westfall, Ken", "rank": 29, "tier": "Comfortable", "projection": 347.9}, {"time": "8:30 AM", "hole": 10, "player": "Swiatek, Stephen", "rank": 92, "tier": "Longshot", "projection": 244.1}, {"time": "8:30 AM", "hole": 10, "player": "Kennedy, Bob", "rank": 102, "tier": "Longshot", "projection": 202.5}, {"time": "8:39 AM", "hole": 1, "player": "Foote, Doug", "rank": 85, "tier": "Longshot", "projection": 257.9}, {"time": "8:39 AM", "hole": 1, "player": "Roth, Bill", "rank": 58, "tier": "Bubble", "projection": 290.3}, {"time": "8:39 AM", "hole": 1, "player": "Steigerwald, James", "rank": 69, "tier": "Bubble", "projection": 283.2}, {"time": "8:39 AM", "hole": 1, "player": "Mora, Henry", "rank": 70, "tier": "Longshot", "projection": 270.1}, {"time": "8:39 AM", "hole": 10, "player": "Ducey, Jeremy", "rank": 57, "tier": "Bubble", "projection": 293.3}, {"time": "8:39 AM", "hole": 10, "player": "Hanson, Jim", "rank": 9, "tier": "Lock", "projection": 411.9}, {"time": "8:39 AM", "hole": 10, "player": "Bucher, Brian", "rank": null, "tier": "1 round (R1: 90.0 pts)", "projection": null}, {"time": "8:39 AM", "hole": 10, "player": "Asbury, William", "rank": 88, "tier": "Longshot", "projection": 240.4}];
-const r5MissingData = [{"rank": 12, "name": "Spiro, Joe", "tier": "Comfortable", "projection": 381.6}, {"rank": 18, "name": "Wilson, Matt", "tier": "Comfortable", "projection": 346.6}, {"rank": 22, "name": "Balk, John", "tier": "Comfortable", "projection": 362.7}, {"rank": 35, "name": "Georges, Wes", "tier": "Comfortable", "projection": 362.6}, {"rank": 41, "name": "Gowler, Matt", "tier": "Comfortable", "projection": 334.7}, {"rank": 46, "name": "Hubbell, Brad", "tier": "Comfortable", "projection": 351.4}, {"rank": 50, "name": "Howard, Cole", "tier": "Bubble", "projection": 285.8}, {"rank": 59, "name": "Lundquist, Bill", "tier": "Longshot", "projection": 267.3}, {"rank": 63, "name": "Godwin, Gabriel", "tier": "Bubble", "projection": 283.8}, {"rank": 64, "name": "Rooney, Owen", "tier": "Longshot", "projection": 275.9}, {"rank": 76, "name": "Duke, Jim", "tier": "Longshot", "projection": 277.9}, {"rank": 80, "name": "Dombaugh, Brad", "tier": "Longshot", "projection": 232.9}, {"rank": 84, "name": "Hook, Jon", "tier": "Longshot", "projection": 263.9}, {"rank": 87, "name": "Heck, Kirby", "tier": "Longshot", "projection": 232.7}, {"rank": 94, "name": "Eleyet, Stephen", "tier": "Longshot", "projection": 245.7}, {"rank": 96, "name": "Dunham, Ryan", "tier": "Longshot", "projection": 211.0}, {"rank": 98, "name": "Lenz, Chad", "tier": "Longshot", "projection": 217.1}, {"rank": 101, "name": "Jenkins, Leonard", "tier": "Longshot", "projection": 202.3}, {"rank": 104, "name": "Reardon, John", "tier": "Longshot", "projection": 191.7}, {"rank": 105, "name": "Bean, Matt", "tier": "Longshot", "projection": 188.5}, {"rank": 108, "name": "Trosen, Michael", "tier": "Longshot", "projection": 134.9}];
+
+
 const FIELD_MEAN_PACE = 54.92;
 const K = 2.0;
 
@@ -456,22 +446,88 @@ function makeSortable(tableId, getData, setData, renderFn) {
 }
 
 /* ---------- TAB 1: MAIN ---------- */
-function renderMain(data) {
-  document.getElementById('tbody-main').innerHTML = data.map(p => `
-    <tr class="">
-      <td>${p.name}</td><td>${p.rank}</td><td>${fmt(p.proRank)}</td><td>${fmt(p.steveRank)}</td><td>${fmt(p.avgRank)}</td><td>${p.played}</td>
-      <td>${fmt(p.total)}</td><td>${fmt(p.pace)}</td><td>${fmt(p.adjPace)}</td>
-      <td>${fmt(p.worst)}${p.worst_incomplete?'*':''}</td>
-      <td>${fmt(p.floor)}</td><td>${fmt(p.ceiling)}</td><td>${fmt(p.projection)}</td>
-      <td class="comment-cell">${p.comment}</td>
-    </tr>`).join('');
-  document.getElementById('count-main').textContent = `${data.length} of ${mainData.length} players`;
+const RANK_META = {
+  rank:      {label:'LV Rank'},
+  proRank:   {label:'Pro Shop'},
+  steveRank: {label:'Steve'},
+  avgRank:   {label:'Avg Rank'},
+};
+const RANK_ORDER = ['rank','proRank','steveRank','avgRank'];
+const OTHER_COLS = [
+  {key:'played',     label:'Played',                type:'num'},
+  {key:'total',      label:'Total',                 type:'num'},
+  {key:'pace',       label:'Raw Pace',              type:'num'},
+  {key:'adjPace',    label:'Adj. Pace',             type:'num'},
+  {key:'worst',      label:'Worst Rd',              type:'num'},
+  {key:'floor',      label:'Floor',                 type:'num'},
+  {key:'ceiling',    label:'Ceiling',               type:'num'},
+  {key:'projection', label:'Avg Pts/Rd Projection', type:'num'},
+  {key:'comment',    label:'Comment',               type:'str'},
+];
+let activeRank = 'rank';           // which rank sits far-left; changed by the dropdown
+let mainSortKey = 'rank', mainSortDir = 1;
+
+function mainColumns() {
+  // Player, then the chosen rank, then the other three ranks, then everything else
+  const ranks = [activeRank, ...RANK_ORDER.filter(r => r !== activeRank)];
+  const cols = [{key:'name', label:'Player', type:'str'}];
+  ranks.forEach(r => cols.push({key:r, label:RANK_META[r].label, type:'num'}));
+  return cols.concat(OTHER_COLS);
 }
+
+function cellFor(p, key) {
+  if (key === 'name')    return `<td>${p.name}</td>`;
+  if (key === 'comment') return `<td class="comment-cell">${p.comment}</td>`;
+  if (key === 'worst')   return `<td>${fmt(p.worst)}${p.worst_incomplete?'*':''}</td>`;
+  if (key === 'played')  return `<td>${p.played}</td>`;
+  if (key === 'rank')    return `<td>${p.rank}</td>`;
+  return `<td>${fmt(p[key])}</td>`;
+}
+
+function sortMain(key, type, dir) {
+  currentMain = [...currentMain].sort((a,b) => {
+    let av=a[key], bv=b[key];
+    if (av===null||av===undefined) av = type==='num' ? Infinity : '';   // blanks last
+    if (bv===null||bv===undefined) bv = type==='num' ? Infinity : '';
+    if (type==='num') return dir*(av-bv);
+    return dir*String(av).localeCompare(String(bv));
+  });
+}
+
+function renderMain(data) {
+  const cols = mainColumns();
+  const thead = document.querySelector('#table-main thead');
+  thead.innerHTML = '<tr>' + cols.map(c =>
+    `<th data-key="${c.key}" data-type="${c.type}">${c.label}` +
+    (c.key===mainSortKey ? `<span class="arrow">${mainSortDir===1?'\u25B2':'\u25BC'}</span>` : '') +
+    '</th>').join('') + '</tr>';
+  document.getElementById('tbody-main').innerHTML =
+    data.map(p => '<tr>' + cols.map(c => cellFor(p, c.key)).join('') + '</tr>').join('');
+  document.getElementById('count-main').textContent = `${data.length} of ${mainData.length} players`;
+  // (re)bind header clicks — old <th>s were replaced, so no duplicate listeners
+  thead.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key=th.dataset.key, type=th.dataset.type;
+      mainSortDir = (key===mainSortKey) ? -mainSortDir : 1;
+      mainSortKey = key;
+      sortMain(key, type, mainSortDir);
+      renderMain(currentMain);
+    });
+  });
+}
+
 let currentMain = [...mainData];
-makeSortable('table-main', ()=>currentMain, (d)=>currentMain=d, renderMain);
 document.getElementById('search-main').addEventListener('input', e => {
   const q = e.target.value.toLowerCase();
   currentMain = mainData.filter(p => p.name.toLowerCase().includes(q));
+  sortMain(mainSortKey, mainColumns().find(c=>c.key===mainSortKey)?.type || 'num', mainSortDir);
+  renderMain(currentMain);
+});
+document.getElementById('rank-select').addEventListener('change', e => {
+  activeRank = e.target.value;      // move chosen rank far-left
+  mainSortKey = activeRank;         // and sort by it, ascending
+  mainSortDir = 1;
+  sortMain(activeRank, 'num', 1);
   renderMain(currentMain);
 });
 
@@ -506,30 +562,33 @@ function best5of7(arr) {
   return s.slice(2).reduce((a,b)=>a+b,0);
 }
 
+function best_n(arr, n){ const s=[...arr].sort((a,b)=>b-a); return s.slice(0,n).reduce((a,b)=>a+b,0); }
+
 function runWhatIf() {
   const name = wiSelect.value;
   const p = roundsData.find(x => x.name === name);
-  const known = [p.r1,p.r2,p.r3,p.r4].filter(v => v!==null && v!==undefined);
-  const played = known.length;
-  const next = parseFloat(document.getElementById('wi-next').value) || 0;
-  const rest = parseFloat(document.getElementById('wi-rest').value) || 0;
-  const remainingAfterNext = Math.max(0, Math.min(7 - played, 2) - 1);
-  let projection;
-  if (played >= 7) {
-    projection = best5of7(known);
-  } else {
-    const full = known.concat([next]).concat(Array(remainingAfterNext).fill(rest));
-    projection = best5of7(full);
-  }
-  const floorFull = known.concat(Array(Math.max(0,Math.min(7-played,2))).fill(20));
-  const ceilFull = known.concat(Array(Math.max(0,Math.min(7-played,2))).fill(100));
-  const floor = best5of7(floorFull);
-  const ceiling = best5of7(ceilFull);
+  const known = [p.r1,p.r2,p.r3,p.r4,p.r5].filter(v => v!==null && v!==undefined);
+
+  // show the actual scores that loaded
+  const labels = ['R1','R2','R3','R4','R5'];
+  const vals = [p.r1,p.r2,p.r3,p.r4,p.r5];
+  document.getElementById('wi-actuals').innerHTML =
+    '<div class="wi-actuals-label">Actual scores</div><div class="wi-chips">' +
+    labels.map((l,i)=>`<span class="wi-chip"><b>${l}</b> ${vals[i]!=null?fmt(vals[i]):'\u2014'}</span>`).join('') +
+    `<span class="wi-chip wi-total"><b>Total</b> ${fmt(known.reduce((a,b)=>a+b,0))}</span></div>`;
+
+  const r6 = parseFloat(document.getElementById('wi-r6').value) || 0;
+  const r7 = parseFloat(document.getElementById('wi-r7').value) || 0;
+
+  // Everyone has exactly R6 + R7 left. Best 5 of whatever they end with.
+  const projection = best_n(known.concat([r6, r7]), 5);
+  const floor   = best_n(known.concat([20, 20]), 5);
+  const ceiling = best_n(known.concat([100, 100]), 5);
 
   document.getElementById('wi-results').innerHTML = `
-    <div class="result-box"><div class="num">${floor.toFixed(1)}</div><div class="lbl">Floor (unchanged)</div></div>
-    <div class="result-box"><div class="num">${projection.toFixed(1)}</div><div class="lbl">New Projection</div></div>
-    <div class="result-box"><div class="num">${ceiling.toFixed(1)}</div><div class="lbl">Ceiling (unchanged)</div></div>
+    <div class="result-box"><div class="num">${floor.toFixed(1)}</div><div class="lbl">Floor (R6+R7 = 20)</div></div>
+    <div class="result-box"><div class="num">${projection.toFixed(1)}</div><div class="lbl">Your Projection</div></div>
+    <div class="result-box"><div class="num">${ceiling.toFixed(1)}</div><div class="lbl">Ceiling (R6+R7 = 100)</div></div>
   `;
   const cutoff = 320;
   let verdict;
@@ -560,8 +619,8 @@ document.getElementById('search-movers').addEventListener('input', e => {
 });
 
 /* ---------- TAB 5: BUBBLE ---------- */
-const r5Players = new Set(teeSheetData.map(t => t.player));
-const bubbleBase = mainData.filter(p => p.rank >= 33 && p.rank <= 63).map(p => ({...p, playingR5: r5Players.has(p.name) ? 'Yes' : 'No'}));
+const r6Players = new Set(["Archuleta, Phil", "Asbury, Thomas", "Balk, John", "Ball, Daron", "Barton, Scott", "Biffar, William", "Bisson, Patrick", "Blanco, Gabriel", "Book, Dustin", "Brown, Jason", "Brown, Scott", "Drew, Mark", "Ducey, Jeremy", "Duke, Jim", "Duke, Shawn", "Dunham, Ryan", "Egan, Dan", "Eleyet, Stephen", "Fadgen, Sean", "Fiedler, David", "Field, Gary", "Filer, Bob", "Fleenor, Jerry", "Ford, Russ", "Frank, Tracey", "Fuhrman, Robert", "Gaultney, Mike", "Gehrmann, Tom", "Georges, Wes", "Godwin, Gabriel", "Gowler, Matt", "Grundy, Chris", "Guinta, Damon", "Hanson, Jim", "Hanson, Matthew", "Harris, Scott", "Hatchell, Mark", "Heck, Kirby", "Homer, Bruce", "Hubbell, Brad", "Jones, Mark", "Kellar, Robert", "Kennedy, Bob", "Lane, Matt", "Law, Craig", "Liljeberg, Curt", "Lowe, Zack", "Lucero, Mitchel", "Martinez, John", "Max, Mark", "McLain, Matt", "McLemore, John", "O'Kelly, Kurtis", "Olson, Ty", "Paulauski, Dennis", "Paxson, Ronald", "Petersen, Bret", "Reardon, John", "Reynolds, Kevin", "Rider, Kenneth", "Roberts, Jim", "Rooney, Owen", "Roth, Bill", "Rush, Tim", "Rzonca, Tad", "Schmitz, Paul", "Spiro, Joe", "Sullivan, Mike", "Szabo, Keith", "Teets, Matthew", "Telle, Clifford", "Thompson, Jason", "Trosen, Michael", "Verce, Landon", "Viliesis, Peter", "Visscher, Jon", "Watt, Mike", "Watt, Steven", "Weakly, Jeff", "Westfall, Ken", "Woody, Chris", "Yohanan, James"]);
+const bubbleBase = mainData.filter(p => p.rank >= 33 && p.rank <= 63).map(p => ({...p, playingR5: r6Players.has(p.name) ? 'Yes' : 'No'}));
 function renderBubble(data) {
   document.getElementById('tbody-bubble').innerHTML = data.map(p => `
     <tr class="">
@@ -639,30 +698,6 @@ function drawChart() {
 chartSelect.addEventListener('change', drawChart);
 
 
-
-
-function renderRound5(data) {
-  document.getElementById('tbody-round5').innerHTML = data.map(p => `
-    <tr class="">
-      <td>${p.time}</td><td>#${p.hole}</td><td>${p.player}</td>
-      <td>${fmt(p.rank)}</td><td>${p.tier}</td><td>${fmt(p.projection)}</td>
-    </tr>`).join('');
-  document.getElementById('count-round5').textContent = `${data.length} of ${teeSheetData.length} tee slots`;
-}
-let currentRound5 = [...teeSheetData];
-makeSortable('table-round5', ()=>currentRound5, (d)=>currentRound5=d, renderRound5);
-document.getElementById('search-round5').addEventListener('input', e => {
-  const q = e.target.value.toLowerCase();
-  currentRound5 = teeSheetData.filter(p => p.player.toLowerCase().includes(q));
-  renderRound5(currentRound5);
-});
-
-function renderR5Missing(data) {
-  document.getElementById('tbody-r5missing').innerHTML = data.map(p => `
-    <tr class=""><td>${p.rank}</td><td>${p.name}</td><td>${p.tier}</td><td>${fmt(p.projection)}</td></tr>`).join('');
-}
-let currentR5Missing = [...r5MissingData];
-makeSortable('table-r5missing', ()=>currentR5Missing, (d)=>currentR5Missing=d, renderR5Missing);
 
 
 const skinsByPlayer = [{"player": "Yohanan, James", "skins": 2, "detail": "Round 1: Net 2.5 on 12 | Round 2: Net 2.5 on 18", "isYou": false}, {"player": "Reynolds, Kevin", "skins": 2, "detail": "Round 4: Eagle on 14, Eagle on 18", "isYou": false}, {"player": "Duke, Jim", "skins": 2, "detail": "Round 2: Birdie on 1, Net 1.5 on 13", "isYou": false}, {"player": "Cox, Theodore E.", "skins": 1, "detail": "Round 1: Net 3.5 on 8", "isYou": false}, {"player": "Laudick, Lucas", "skins": 1, "detail": "Round 1: Eagle on 10", "isYou": false}, {"player": "Lindsey, Brian", "skins": 1, "detail": "Round 1: Net 2.5 on 14", "isYou": false}, {"player": "Szabo, Keith", "skins": 1, "detail": "Round 1: Net 2.5 on 11", "isYou": false}, {"player": "Martinez, John", "skins": 1, "detail": "Round 1: Net 2.5 on 1", "isYou": false}, {"player": "Hall, Chris", "skins": 1, "detail": "Round 1: Net 3.5 on 3", "isYou": false}, {"player": "Gowler, Matt", "skins": 1, "detail": "Round 4: Net 2.5 on 1", "isYou": false}, {"player": "Jaworowski, Dan", "skins": 1, "detail": "Round 4: Net 1.5 on 15", "isYou": false}, {"player": "Fiedler, David", "skins": 1, "detail": "Round 4: Net 2.5 on 9", "isYou": false}, {"player": "Balk, John", "skins": 1, "detail": "Round 4: Net 2.5 on 16", "isYou": false}, {"player": "Liljeberg, Curt", "skins": 1, "detail": "Round 2: Net 2.5 on 11", "isYou": false}, {"player": "Grundy, Chris", "skins": 1, "detail": "Round 2: Net 2.5 on 12", "isYou": false}, {"player": "Rooney, Owen", "skins": 1, "detail": "Round 2: Net 2.5 on 5", "isYou": false}, {"player": "Jones, Mark", "skins": 1, "detail": "Round 2: Net 2.5 on 14", "isYou": false}, {"player": "Lowe, Zack", "skins": 1, "detail": "Round 2: Net 2.5 on 4", "isYou": false}, {"player": "Pogue, James", "skins": 1, "detail": "Round 2: Eagle on 3", "isYou": false}, {"player": "Westfall, Ken", "skins": 1, "detail": "Round 2: Hole in One on 2", "isYou": false}, {"player": "Sherwood, Rob", "skins": 1, "detail": "Round 3: Birdie on 6", "isYou": false}, {"player": "Duke, Shawn", "skins": 1, "detail": "Round 3: Eagle on 10", "isYou": false}, {"player": "Georges, Wes", "skins": 1, "detail": "Round 3: Birdie on 4", "isYou": false}, {"player": "Field, Gary", "skins": 1, "detail": "Round 3: Eagle on 5", "isYou": false}, {"player": "Hanson, Jim", "skins": 1, "detail": "Round 3: Net 2.5 on 18", "isYou": false}, {"player": "Ford, Russ", "skins": 1, "detail": "Round 3: Birdie on 17", "isYou": false}];
@@ -747,8 +782,6 @@ renderRounds(currentRounds);
 renderMovers(currentMovers);
 renderBubble(currentBubble);
 renderGross(currentGross);
-renderRound5(currentRound5);
-renderR5Missing(currentR5Missing);
 renderR5Recap(currentR5Recap);
 renderHandicap(currentHandicap);
 renderSkinsPlayer(currentSkinsPlayer);
