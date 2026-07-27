@@ -1,0 +1,12 @@
+chrome_profile/
+.venv/
+config.py
+leaderboard_debug.png
+leaderboard_debug.html
+bot.log
+__pycache__/
+*.pyc
+signup_snapshots.json
+tee_sheet_r6_snapshots.json
+tee_sheet_r6_baseline.json
+.claude/
