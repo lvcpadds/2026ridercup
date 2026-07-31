@@ -68,22 +68,32 @@ def git_push():
 
 
 def main():
-    force = "--force" in sys.argv
+    force = "--force" in sys.argv          # ignore the date/time window
+    no_push = "--no-push" in sys.argv       # do everything except git push (safe test)
+    sample = "--sample" in sys.argv         # use randomized fake scores instead of scraping
+
     if not force and not within_window():
         print(f"[{datetime.now():%H:%M}] outside run window — skipping.")
         return
 
-    print(f"[{datetime.now():%H:%M}] run start (R{config.CURRENT_ROUND})")
+    print(f"[{datetime.now():%H:%M}] run start (R{config.CURRENT_ROUND})"
+          f"{' [SAMPLE]' if sample else ''}{' [NO-PUSH]' if no_push else ''}")
 
-    scraped = scrape.scrape()
-    if not scraped:
-        print("  scrape returned 0 players — aborting (selectors may need a look).")
-        return
-    print(f"  scraped {len(scraped)} players")
+    if sample:
+        scraped = _sample_scores()
+        print(f"  generated {len(scraped)} randomized sample scores")
+    else:
+        # MUST run headed — Golf Genius blocks headless (returns a blank page).
+        scraped = scrape.scrape(headless=False)
+        if not scraped:
+            print("  scrape returned 0 players — aborting (session or selectors may need a look).")
+            return
+        print(f"  scraped {len(scraped)} players")
 
     history = load_history()
     history = merge_round(history, scraped, config.CURRENT_ROUND)
-    save_history(history)
+    if not sample:                          # never persist fake data into real history
+        save_history(history)
 
     static_ranks = json.load(open(config.STATIC_RANKS, encoding="utf-8"))
     main_data = model.compute(history, static_ranks)
@@ -91,8 +101,26 @@ def main():
     path = update_html.update(main_data, rounds_data)
     print(f"  wrote {path} ({len(main_data)} ranked players)")
 
-    git_push()
+    if no_push or sample:
+        print("  (skipping git push)")
+    else:
+        git_push()
     print(f"[{datetime.now():%H:%M}] done.")
+
+
+def _sample_scores():
+    """Randomized-but-realistic R6 scores for the field, for end-to-end testing.
+    Draws each player's fake score from their own historical range so nothing is absurd."""
+    import random
+    hist = load_history()
+    out = {}
+    for name, rounds in hist.items():
+        played = [v for v in rounds[:5] if v is not None]
+        if not played:
+            continue
+        lo, hi = min(played), max(played)
+        out[name] = round(random.uniform(lo, hi) * 2) / 2  # nearest 0.5
+    return out
 
 
 if __name__ == "__main__":

@@ -3,7 +3,21 @@ The projection model — best-5-of-7 with regression-to-mean.
 This is the same logic baked into the HTML, kept in one place so the
 scraper and the site never drift apart.
 """
+import json
+import os
 import config
+
+
+def _load_baseline():
+    """Frozen pre-Round-6 ranks, so the Round 6 Tracker can show movement.
+    Missing file just means zero movement (rankBaseline == current rank)."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "baseline_ranks.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, ValueError):
+        return {}
+
 
 
 def best_n(scores, n=config.BEST_N):
@@ -38,7 +52,6 @@ def compute(history, static_ranks):
     returns: list of mainData dicts, ranked.
     """
     fmean = field_mean_pace(history)
-    rem = config.REMAINING_EVENTS
 
     rows = []
     for name, rounds in history.items():
@@ -46,6 +59,11 @@ def compute(history, static_ranks):
         played = len(scores)
         if played < 2:
             continue  # not enough to rank
+
+        # Remaining = how many of the two final events (R6, R7) this player
+        # hasn't posted yet: 2 before R6, 1 once R6 is in, 0 after both.
+        final_slots = list(rounds[5:7]) + [None] * (2 - len(rounds[5:7]))
+        rem = sum(1 for v in final_slots if v is None)
 
         total = round(sum(scores), 1)
         raw_pace = sum(scores) / played
@@ -74,13 +92,29 @@ def compute(history, static_ranks):
 
     for i, p in enumerate(rows, 1):
         p["rank"] = i
-        sr = static_ranks.get(p["name"], {})
-        p["proRank"] = sr.get("proRank")
-        p["steveRank"] = sr.get("steveRank")
-        known = [r for r in [p["proRank"], p["steveRank"], p["rank"]] if r is not None]
-        p["avgRank"] = round(sum(known) / len(known), 1) if known else None
         p["isYou"] = False
         p["tier"], p["comment"] = _tier_and_comment(p)
+
+    # Pro Shop rank = strict total-points rank (recomputed live as scores post).
+    for i, p in enumerate(sorted(rows, key=lambda x: -x["total"]), 1):
+        p["proRank"] = i
+    # Steve's unofficial rank stays frozen at its Week-5 snapshot.
+    for p in rows:
+        p["steveRank"] = static_ranks.get(p["name"], {}).get("steveRank")
+
+    # Avg Rank = clean integer ordinal ranking of the blended average (no dupes/decimals).
+    for p in rows:
+        vals = [v for v in [p["rank"], p["proRank"], p["steveRank"]] if v is not None]
+        p["avgMean"] = round(sum(vals) / len(vals), 1) if vals else None
+    ordered = sorted(rows, key=lambda p: (p["avgMean"] if p["avgMean"] is not None else 9999,
+                                          p["rank"], p["name"]))
+    for i, p in enumerate(ordered, 1):
+        p["avgRank"] = i
+
+    # Frozen pre-R6 rank so the Round 6 Tracker can show movement.
+    baseline = _load_baseline()
+    for p in rows:
+        p["rankBaseline"] = baseline.get(p["name"], p["rank"])
 
     return rows
 
